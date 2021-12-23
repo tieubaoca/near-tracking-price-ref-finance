@@ -1,10 +1,10 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{LazyOption, UnorderedMap, Vector};
+use near_sdk::collections::{UnorderedMap};
 use near_sdk::json_types::{ValidAccountId, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    assert_one_yocto, env, ext_contract, log, near_bindgen, AccountId, Balance, Gas,
-    PanicOnDefault, Promise, PromiseOrValue, PromiseResult, Timestamp,
+    env, ext_contract, near_bindgen, AccountId, 
+    PanicOnDefault, PromiseOrValue, PromiseResult, 
 };
 near_sdk::setup_alloc!();
 
@@ -36,40 +36,67 @@ impl Contract {
         amount_in: U128,
         token_out: ValidAccountId,
     ) -> PromiseOrValue<U128> {
-        let pool_in_wnear = self
-            .token_to_ref_pool_id
-            .get(&token_in.clone().into())
-            .unwrap()
-            .get(&WNEAR.to_string())
-            .unwrap();
-        PromiseOrValue::from(
-            ref_contract::get_return(
-                pool_in_wnear,
-                token_in,
-                U128::from(amount_in),
-                ValidAccountId::try_from(WNEAR).unwrap(),
-                &REF_FINANCE,
-                0,
-                20_000_000_000_000,
+        if token_in == ValidAccountId::try_from(WNEAR).unwrap()
+            || token_out == ValidAccountId::try_from(WNEAR).unwrap()
+        {
+            let pool_wnear = self
+                .token_to_ref_pool_id
+                .get(&token_in.clone().into())
+                .unwrap()
+                .get(&WNEAR.to_string())
+                .unwrap();
+            PromiseOrValue::from(
+                ref_contract::get_return(
+                    pool_wnear,
+                    token_in,
+                    U128::from(amount_in),
+                    ValidAccountId::try_from(WNEAR).unwrap(),
+                    &REF_FINANCE,
+                    0,
+                    20_000_000_000_000,
+                ))
+        } else {
+            let pool_in_wnear = self
+                .token_to_ref_pool_id
+                .get(&token_in.clone().into())
+                .unwrap()
+                .get(&WNEAR.to_string())
+                .unwrap();
+            PromiseOrValue::from(
+                ref_contract::get_return(
+                    pool_in_wnear,
+                    token_in,
+                    U128::from(amount_in),
+                    ValidAccountId::try_from(WNEAR).unwrap(),
+                    &REF_FINANCE,
+                    0,
+                    20_000_000_000_000,
+                )
+                .then(ext_self::get_return_token_out(
+                    token_out,
+                    &env::current_account_id(),
+                    0,
+                    20_000_000_000_000,
+                )),
             )
-            .then(ext_self::get_return_token_out(
-                token_out,
-                &env::current_account_id(),
-                0,
-                20_000_000_000_000,
-            )),
-        )
+        }
     }
 
-    fn internal_add_pool(&mut self, token_1: ValidAccountId, token_2: ValidAccountId, pool_id: u64){
+    fn internal_add_pool(
+        &mut self,
+        token_1: ValidAccountId,
+        token_2: ValidAccountId,
+        pool_id: u64,
+    ) {
         let mut mapping = self
-        .token_to_ref_pool_id
-        .get(&token_1.clone().into())
-        .unwrap_or(UnorderedMap::new(
-            format!("1{}{}", token_1, token_2).as_bytes(),
-        ));
-    mapping.insert(&token_2.clone().into(), &pool_id);
-    self.token_to_ref_pool_id.insert(&token_1.clone().into(), &mapping);
+            .token_to_ref_pool_id
+            .get(&token_1.clone().into())
+            .unwrap_or(UnorderedMap::new(
+                format!("1{}{}", token_1, token_2).as_bytes(),
+            ));
+        mapping.insert(&token_2.clone().into(), &pool_id);
+        self.token_to_ref_pool_id
+            .insert(&token_1.clone().into(), &mapping);
     }
 
     pub fn get_return_token_out(&self, token_out: ValidAccountId) -> PromiseOrValue<U128> {
