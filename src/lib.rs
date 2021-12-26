@@ -53,7 +53,7 @@ impl Contract {
                     ValidAccountId::try_from(WNEAR).unwrap(),
                     &REF_FINANCE,
                     0,
-                    20_000_000_000_000,
+                    5_000_000_000_000,
                 ))
         } else {
             let pool_in_wnear = self
@@ -70,13 +70,13 @@ impl Contract {
                     ValidAccountId::try_from(WNEAR).unwrap(),
                     &REF_FINANCE,
                     0,
-                    20_000_000_000_000,
+                    5_000_000_000_000,
                 )
                 .then(ext_self::get_return_token_out(
                     token_out,
                     &env::current_account_id(),
                     0,
-                    20_000_000_000_000,
+                    15_000_000_000_000,
                 )),
             )
         }
@@ -117,7 +117,7 @@ impl Contract {
                 token_out,
                 &REF_FINANCE,
                 0,
-                10_000_000_000_000,
+                5_000_000_000_000,
             ))
         } else {
             env::panic(b"fail!");
